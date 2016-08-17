@@ -8,7 +8,7 @@ clear all; close all; clc
 V_dot_target_initial = -10;
 delta_t = 0.001;
 t_start = 0;
-t_end = 50;
+t_end = 20;
 t = t_start: delta_t: t_end;
 
 x_IC = [3 2 1];
@@ -95,9 +95,9 @@ for epoch = 2: length(t)
     
     % Calculate omega (the surface)
     
-    dxi1_dt = xi(2);    % xi(1)-dot = xi(2)
+    dxi1_dt = xi(2);    % xi(1)_dot = xi(2)
     
-    dxi2_dt = 0; % TO DO - filter to calculate this
+    %dxi2_dt = 0; % TO DO - filter to calculate this
     
     % Alpha's are one type of 'gain' for the SMC
     alpha0 = 1;
@@ -140,31 +140,31 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Plot
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-subplot(3,2,1)
+subplot(2,2,1)
 plot(t, x_OL)
 legend('x_1','x_2','x_3','location','NorthWest')
 xlabel('Time [s]')
 ylabel('x')
 title('x: Open Loop')
 
-subplot(3,2,2)
+subplot(2,2,2)
 plot(t, y_OL)
 xlabel('Time [s]')
 ylabel('x')
 title('y: Open Loop')
 
-subplot(3,2,3)
+subplot(2,2,3)
 plot(t, x_CL)
 legend('x_1','x_2','x_3','location','NorthWest')
 xlabel('Time [s]')
 ylabel('x')
-title('x: With Disturbance and SMC')
+title('x: Closed Loop')
 
-subplot(3,2,4)
+subplot(2,2,4)
 plot(t, y_CL)
 xlabel('Time [s]')
 ylabel('x')
-title('y: With Disturbance and SMC')
+title('y: Closed Loop')
 
 figure
 subplot(2,1,1)
