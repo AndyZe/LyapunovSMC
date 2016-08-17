@@ -8,7 +8,7 @@ clear all; close all; clc
 V_dot_target_initial = -10;
 delta_t = 0.001;
 t_start = 0;
-t_end = 5;
+t_end = 50;
 t = t_start: delta_t: t_end;
 
 x_IC = [3 2 1];
@@ -95,12 +95,30 @@ for epoch = 2: length(t)
     
     % Calculate omega (the surface)
     
+    dxi1_dt = xi(2);    % xi(1)-dot = xi(2)
+    
+    dxi2_dt = 0; % TO DO - filter to calculate this
+    
+    % Alpha's are one type of 'gain' for the SMC
+    alpha0 = 1;
+    alpha1 = 1;
+    omega = +alpha0*xi(1)+alpha1*dxi1_dt;
+    %omega(2) = -alpha0*xi(2)-alpha1*dxi2_dt;
+    
     % Calculate u_s
+    % Eta is the other 'gain' for the SMC
+    eta = 0.2;
+    u_s(epoch) = -eta*sign(omega);
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Apply (u = u_eq + u_s) to the system and simulate for one time step
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    xy = simulate_sys( x_CL(epoch-1,:), y_CL(epoch-1), u_eq(epoch), delta_t);
+    
+    % Add disturbance?
+    %d = 2*(0.5-rand());% Random # between -1 and 1
+    d = 0.5;
+    
+    xy = simulate_sys( x_CL(epoch-1,:), y_CL(epoch-1), u_eq(epoch)+u_s(epoch)+d, delta_t);
     x_CL(epoch,:) = xy(1:3);    % First 3 elements are x
     y_CL(epoch) = xy(end);         % Final element is y
     
@@ -114,7 +132,7 @@ for epoch = 2: length(t)
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Update
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % Is this legit? Is it invariant with the xi transform?
+    % Is this legit? Is it invariant with the xi transformation?
     V(epoch) = 0.5*x_CL(epoch,:)*x_CL(epoch,:)';
     
 end
@@ -122,31 +140,31 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Plot
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-subplot(2,2,1)
+subplot(3,2,1)
 plot(t, x_OL)
 legend('x_1','x_2','x_3','location','NorthWest')
 xlabel('Time [s]')
 ylabel('x')
 title('x: Open Loop')
 
-subplot(2,2,2)
+subplot(3,2,2)
 plot(t, y_OL)
 xlabel('Time [s]')
 ylabel('x')
 title('y: Open Loop')
 
-subplot(2,2,3)
+subplot(3,2,3)
 plot(t, x_CL)
 legend('x_1','x_2','x_3','location','NorthWest')
 xlabel('Time [s]')
 ylabel('x')
-title('x: Closed Loop')
+title('x: With Disturbance and SMC')
 
-subplot(2,2,4)
+subplot(3,2,4)
 plot(t, y_CL)
 xlabel('Time [s]')
 ylabel('x')
-title('y: Closed Loop')
+title('y: With Disturbance and SMC')
 
 figure
 subplot(2,1,1)
