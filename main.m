@@ -141,6 +141,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Plot
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+set(gcf,'color','w');
 subplot(2,2,1)
 plot(t, x_OL)
 legend('x_1','x_2','x_3','location','NorthWest')
@@ -151,7 +152,7 @@ title('x: Open Loop')
 subplot(2,2,2)
 plot(t, y_OL)
 xlabel('Time [s]')
-ylabel('x')
+ylabel('y')
 title('y: Open Loop')
 
 subplot(2,2,3)
@@ -159,23 +160,24 @@ plot(t, x_CL)
 legend('x_1','x_2','x_3','location','NorthWest')
 xlabel('Time [s]')
 ylabel('x')
-title('x: Closed Loop')
+%title('x: Closed Loop')
 
 subplot(2,2,4)
 plot(t, y_CL)
 xlabel('Time [s]')
-ylabel('x')
-title('y: Closed Loop')
+ylabel('y')
+%title('y: Closed Loop')
 
 figure
+set(gcf,'color','w');
 subplot(2,1,1)
-plot(t,u_eq)
+plot(t,u_eq,'o')
 xlabel('Time [s]')
 ylabel('u_e_q')
-title('u_e_q: Control effort to stabilize the nominal dynamics')
+title('u_e_q: Lyapunov control effort to stabilize the nominal dynamics')
 
 subplot(2,1,2)
-plot(t,u_s)
+plot(t,u_s,'o')
 xlabel('Time [s]')
 ylabel('u_s')
-title('u_s: Control effort to drive the system towards the sliding mode')
+title('u_s: SMC control effort for robustness')
