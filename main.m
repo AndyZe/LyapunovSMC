@@ -14,7 +14,7 @@ V_dot_target_initial = -10;
 
 % Add disturbance?
 %d = 2*(0.5-rand());% Random # between -1 and 1
-d = -1;
+d = 1;
 %d = 0;
 
 % Alpha's are one type of 'gain' for the SMC
@@ -22,6 +22,9 @@ alpha0 = 1;
 alpha1 = 1;
 % Eta is the other 'gain' for the SMC
 eta = 1.1;
+
+% For crude FBL
+Kp = -10;
 
 % Saturation
 apply_saturation = true;
@@ -45,7 +48,7 @@ V = zeros(length(t), 1);
 V(1) = 1;
 
 u_lyap = zeros(length(t),1 );
-u_s = zeros(length(t),1 );
+u_robust = zeros(length(t),1 );
 
 
 for epoch = 2: length(t)
@@ -117,25 +120,31 @@ for epoch = 2: length(t)
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % Calculate u_s with the SMC algorithm
+    % Calculate u_robust with crude FBL, then proportional
+    % control
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    u_robust(epoch) = -x_CL(epoch-1,2)*x_CL(epoch-1,3) +Kp * xi(1);
+    
+%     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%     % Calculate u_robust with the SMC algorithm
+%     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%     
+%     % Calculate omega (the surface)
+%     
+%     dxi1_dt = xi(2);    % xi(1)_dot = xi(2)
+%     %dxi2_dt = 0; % TO DO - filter to calculate this
+%     
+%     omega = +alpha0*xi(1)+alpha1*dxi1_dt;
+%     %omega(2) = -alpha0*xi(2)-alpha1*dxi2_dt;
+%     
+%     % Calculate u_robust
+%     u_robust(epoch) = -eta*sign(omega);
+    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % Apply (u = u_lyap + u_robust) to the system and simulate for one time step
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
-    % Calculate omega (the surface)
-    
-    dxi1_dt = xi(2);    % xi(1)_dot = xi(2)
-    %dxi2_dt = 0; % TO DO - filter to calculate this
-    
-    omega = +alpha0*xi(1)+alpha1*dxi1_dt;
-    %omega(2) = -alpha0*xi(2)-alpha1*dxi2_dt;
-    
-    % Calculate u_s
-    u_s(epoch) = -eta*sign(omega);
-    
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % Apply (u = u_lyap + u_s) to the system and simulate for one time step
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    
-    xy = simulate_sys( x_CL(epoch-1,:), y_CL(epoch-1), u_lyap(epoch)+u_s(epoch)+d, delta_t);
+    xy = simulate_sys( x_CL(epoch-1,:), y_CL(epoch-1), u_lyap(epoch), delta_t);
     x_CL(epoch,:) = xy(1:3);    % First 3 elements are x
     y_CL(epoch) = xy(end);         % Final element is y
     
@@ -192,10 +201,10 @@ ylabel('u_l_y_a_p')
 title('u_l_y_a_p: Lyapunov control effort to stabilize the nominal dynamics')
 
 subplot(2,1,2)
-plot(t,u_s,'o')
+plot(t,u_robust,'o')
 xlabel('Time [s]')
-ylabel('u_s')
-title('u_s: SMC control effort for robustness')
+ylabel('u_robust')
+title('u_robust: SMC control effort for robustness')
 
 figure
 set(gcf,'color','w');
