@@ -5,7 +5,7 @@ clear all; close all; clc
 % IC's and simulation parameters
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-delta_t = 0.001;
+delta_t = 0.0005;
 t_start = 0;
 t_end = 20;
 t = t_start: delta_t: t_end;
@@ -14,7 +14,8 @@ V_dot_target_initial = -10;
 
 % Add disturbance?
 %d = 2*(0.5-rand());% Random # between -1 and 1
-d = 1;
+d = -1;
+%d = 0;
 
 % Alpha's are one type of 'gain' for the SMC
 alpha0 = 1;
@@ -22,7 +23,12 @@ alpha1 = 1;
 % Eta is the other 'gain' for the SMC
 eta = 1.1;
 
-x_IC = [3 2 1];
+% Saturation
+apply_saturation = true;
+u_min = -2;
+u_max = 2;
+
+x_IC = [1 1 -1];
 
 % Pre-allocate
 x_OL = zeros(length(t), 3);
@@ -36,9 +42,9 @@ y_CL = zeros(length(t),1 );
 y_CL(1) = x_IC(2);      % y = x2
 
 V = zeros(length(t), 1);
-V(1) = 0.5*x_IC*x_IC';
+V(1) = 1;
 
-u_eq = zeros(length(t),1 );
+u_lyap = zeros(length(t),1 );
 u_s = zeros(length(t),1 );
 
 
@@ -70,7 +76,7 @@ for epoch = 2: length(t)
     xi(2) = Lf_h;
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % Calculate u_eq with the switched Lyapunov algorithm
+    % Calculate u_lyap with the switched Lyapunov algorithm
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
     % Calculate dV1_dot_du
@@ -87,17 +93,27 @@ for epoch = 2: length(t)
     
     [M,I] = max(abs(dV_dot_du));
     
-    % Calculate u_eq with the CLF of choice
+    % Calculate u_lyap with the CLF of choice
     if ( I==1 ) % use V1
         using_V1(epoch) = y_CL(epoch);
-        u_eq(epoch) = (V_dot_target - xi(1)*Lf_h - xi(r)*Lf_2_h) /...
+        u_lyap(epoch) = (V_dot_target - xi(1)*Lf_h - xi(r)*Lf_2_h) /...
             dV1_dot_du;
     else %use V2
         using_V2(epoch) = y_CL(epoch);
-        u_eq(epoch) = (V_dot_target -...
+        u_lyap(epoch) = (V_dot_target -...
             xi(1)*(0.9+0.1*abs(xi(r)-1))*Lf_h-... % for xi(1)
             (xi(r)*(0.9+0.1*abs(xi(r)-1) )+0.1*V(epoch-1)*sign(xi(r)-1))*Lf_2_h )/... % for xi(r)
             dV2_dot_du;
+    end
+    
+    if (apply_saturation)
+        % Apply saturation
+        if (u_lyap(epoch) > u_max)
+            u_lyap(epoch) = u_max;
+        end
+        if (u_lyap(epoch) < u_min)
+            u_lyap(epoch) = u_min;
+        end
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -116,10 +132,10 @@ for epoch = 2: length(t)
     u_s(epoch) = -eta*sign(omega);
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % Apply (u = u_eq + u_s) to the system and simulate for one time step
+    % Apply (u = u_lyap + u_s) to the system and simulate for one time step
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
-    xy = simulate_sys( x_CL(epoch-1,:), y_CL(epoch-1), u_eq(epoch)+u_s(epoch)+d, delta_t);
+    xy = simulate_sys( x_CL(epoch-1,:), y_CL(epoch-1), u_lyap(epoch)+u_s(epoch)+d, delta_t);
     x_CL(epoch,:) = xy(1:3);    % First 3 elements are x
     y_CL(epoch) = xy(end);         % Final element is y
     
@@ -133,8 +149,7 @@ for epoch = 2: length(t)
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Update
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % Is this legit? Is it invariant with the xi transformation?
-    V(epoch) = 0.5*x_CL(epoch,:)*x_CL(epoch,:)';
+    V(epoch) = 0.5*(xi(1)^2+xi(2)^2);
     
 end
 
@@ -171,13 +186,19 @@ ylabel('y')
 figure
 set(gcf,'color','w');
 subplot(2,1,1)
-plot(t,u_eq,'o')
+plot(t,u_lyap,'o')
 xlabel('Time [s]')
-ylabel('u_e_q')
-title('u_e_q: Lyapunov control effort to stabilize the nominal dynamics')
+ylabel('u_l_y_a_p')
+title('u_l_y_a_p: Lyapunov control effort to stabilize the nominal dynamics')
 
 subplot(2,1,2)
 plot(t,u_s,'o')
 xlabel('Time [s]')
 ylabel('u_s')
 title('u_s: SMC control effort for robustness')
+
+figure
+set(gcf,'color','w');
+plot(t, V)
+xlabel('Time [s]')
+ylabel('V(xi)')
